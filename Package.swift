@@ -32,7 +32,10 @@ let package = Package(
         .product(name: "MLXUtilsLibrary", package: "MLXUtilsLibrary")
      ],
      resources: [
-      .copy("../../Resources/")
+      // Copied under a non-reserved folder name: a static-library resource bundle is signed as a
+      // shallow bundle, and codesign rejects one containing a subfolder literally named `Resources`
+      // ("bundle format unrecognized"). `BundleResources` sidesteps that while keeping the subfolder.
+      .copy("../../BundleResources/")
      ]
     ),
     .testTarget(
