@@ -11,13 +11,17 @@ let package = Package(
   products: [
     .library(
       name: "MisakiSwift",
-      type: .dynamic,
+      // Static linkage keeps MLX's generic Swift symbols available to release builds.
+      type: .static,
       targets: ["MisakiSwift"]
     ),
   ],
   dependencies: [
     .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.30.2"),
-    .package(url: "https://github.com/mlalma/MLXUtilsLibrary.git", exact: "0.0.6")
+    .package(
+      url: "https://github.com/Jon-Schneider/MLXUtilsLibrary.git",
+      branch: "jsc/2026-06-08--static-package-product"
+    )
   ],
   targets: [
     .target(
