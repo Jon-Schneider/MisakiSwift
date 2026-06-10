@@ -17,7 +17,9 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.30.2"),
+    // Relaxed from exact 0.30.2 to a floor so the app can resolve a single mlx-swift alongside
+    // mlx-audio-swift (Soprano narrator), which requires mlx-swift >= 0.30.6.
+    .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.30.2"),
     .package(
       url: "https://github.com/Jon-Schneider/MLXUtilsLibrary.git",
       branch: "jsc/2026-06-08--static-package-product"
