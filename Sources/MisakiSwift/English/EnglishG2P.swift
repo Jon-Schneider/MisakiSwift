@@ -41,11 +41,14 @@ final public class EnglishG2P {
     let tokenRange: Range<String.Index>
   }
 
-  public init(british: Bool = false, unk: String = "❓") {
+  /// - Parameter resources: supplies the BART checkpoint/config and the gold/silver lexicons. The package
+  ///   no longer bundles these; inject an **accent-specific** loader (US assets for `british == false`, GB
+  ///   for `british == true`) such as `MisakiDirectoryResources` over a downloaded directory.
+  public init(british: Bool = false, unk: String = "❓", resources: MisakiResourceLoading) throws {
     self.british = british
     self.tagger = NLTagger(tagSchemes: [.nameTypeOrLexicalClass])
-    self.lexicon = Lexicon(british: british)
-    self.fallback = EnglishFallbackNetwork(british: british)
+    self.lexicon = try Lexicon(british: british, resources: resources)
+    self.fallback = try EnglishFallbackNetwork(british: british, resources: resources)
     self.unk = unk
   }
 

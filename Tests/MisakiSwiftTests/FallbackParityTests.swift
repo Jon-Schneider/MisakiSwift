@@ -12,7 +12,7 @@ private func assertFallbackMatchesFixtures(british: Bool) throws {
   let fixtures = try #require(try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: String])
   #expect(!fixtures.isEmpty)
 
-  let network = EnglishFallbackNetwork(british: british)
+  let network = try EnglishFallbackNetwork(british: british, resources: TestResources.loader(british: british))
   for (word, expectedPhonemes) in fixtures.sorted(by: { $0.key < $1.key }) {
     let token = MToken(text: word, tokenRange: word.startIndex ..< word.endIndex, whitespace: "")
     let (phonemes, rating) = network(token)

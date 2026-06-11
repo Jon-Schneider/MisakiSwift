@@ -28,11 +28,11 @@ final class Lexicon {
   private let silvers: [String: Any]
   private let vocab: Set<Character>
 
-  init(british: Bool) {
+  init(british: Bool, resources: MisakiResourceLoading) throws {
     self.british = british
     // Load and grow dictionaries
-    let rawGolds = DataResourcesUtil.loadGold(british: british)
-    let rawSilvers = DataResourcesUtil.loadSilver(british: british)
+    let rawGolds = try DataResourcesUtil.loadGold(from: resources)
+    let rawSilvers = try DataResourcesUtil.loadSilver(from: resources)
     self.golds = Lexicon.growDictionary(rawGolds)
     self.silvers = Lexicon.growDictionary(rawSilvers)
   

@@ -10,14 +10,14 @@ final class EnglishFallbackNetwork {
 
   private let british: Bool
 
-  init(british: Bool) {
-    configuration = EnglishFallbackNetwork.loadConfig(british: british)!
+  init(british: Bool, resources: MisakiResourceLoading) throws {
+    configuration = try EnglishFallbackNetwork.loadConfig(from: resources)
 
     self.british = british
 
     self.model = BARTFallbackModel(
       config: configuration,
-      weights: EnglishFallbackNetwork.loadWeights(british: british)!
+      weights: try EnglishFallbackNetwork.loadWeights(from: resources)
     )
 
     var graphemeDict: [Character: Int] = [:]
@@ -70,24 +70,13 @@ final class EnglishFallbackNetwork {
     return (outputText, 1)
   }
 
-  private static func loadConfig(british: Bool) -> BARTConfig? {
-    let fileName = "\(british ? "gb" : "us")_bart_config"
-
-
-    guard let url = Bundle.module.url(forResource: fileName, withExtension: "json", subdirectory: "BundleResources"),
-          let data = try? Data(contentsOf: url),
-          let config = try? JSONDecoder().decode(BARTConfig.self, from: data) else {
-        return nil
-    }
-    return config
+  private static func loadConfig(from resources: MisakiResourceLoading) throws -> BARTConfig {
+    let data = try resources.data(named: "config", withExtension: "json")
+    return try JSONDecoder().decode(BARTConfig.self, from: data)
   }
 
-  private static func loadWeights(british: Bool) -> [String: SafetensorsReader.Tensor]? {
-    let fileName = "\(british ? "gb" : "us")_bart"
-    guard let url = Bundle.module.url(forResource: fileName, withExtension: "safetensors", subdirectory: "BundleResources"),
-          let weights = try? SafetensorsReader.read(contentsOf: url) else {
-      return nil
-    }
-    return weights
+  private static func loadWeights(from resources: MisakiResourceLoading) throws -> [String: SafetensorsReader.Tensor] {
+    let data = try resources.data(named: "model", withExtension: "safetensors")
+    return try SafetensorsReader.read(data)
   }
 }
