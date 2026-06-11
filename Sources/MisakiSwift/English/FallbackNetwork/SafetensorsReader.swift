@@ -17,7 +17,10 @@ enum SafetensorsReader {
   }
 
   static func read(contentsOf url: URL) throws -> [String: Tensor] {
-    let data = try Data(contentsOf: url)
+    try read(Data(contentsOf: url))
+  }
+
+  static func read(_ data: Data) throws -> [String: Tensor] {
     guard data.count >= 8 else { throw ReadError.malformedHeader }
 
     let headerLength = data.prefix(8).withUnsafeBytes { buffer in

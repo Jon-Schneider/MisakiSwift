@@ -61,26 +61,36 @@ MisakiSwift consists of several key components:
 
 - **`EnglishG2P`**: Main conversion pipeline that orchestrates tokenization, lexicon lookup, and neural network fallback
 - **`Lexicon`**: Dictionary-based pronunciation lookup using gold and silver dictionaries
-- **`EnglishFallbackNetwork`**: Transformer-based model (ported to run on MLX) for phoneme prediction for out-of-vocabulary words
+- **`EnglishFallbackNetwork`**: Transformer-based BART model (a pure-Accelerate CPU port) for phoneme prediction for out-of-vocabulary words
 
 ## Key Differences from Python Misaki
 
 1. **POS Tagging**: Uses Apple's `NaturalLanguage` framework instead of SpaCy for part-of-speech tagging
-2. **Neural Network**: The BART-based fallback network is ported to run on [MLX](https://github.com/ml-explore/mlx-swift)
-3. **Resource Management**: All model weights and dictionaries are bundled as resources within the Swift package
+2. **Neural Network**: The BART-based fallback network is a pure-CPU Accelerate port (no GPU/MLX runtime)
+3. **Resource Management**: Model weights and dictionaries are **not** bundled — the host injects them (see below)
 
 ## Dependencies
 
-- **[MLX](https://github.com/ml-explore/mlx-swift)**: Machine learning framework for the neural network component
 - **NaturalLanguage**: Apple's built-in framework for text processing and POS tagging
-- **MLXUtilsLibrary**: For `MToken`, used also in other parts of the ML stack
+- **Accelerate**: Apple's built-in framework backing the BART fallback's matrix math
+
+The package has no external package dependencies.
 
 ## Model Resources
 
-The package includes pre-trained models and dictionaries:
+`EnglishG2P` needs four data resources **per accent**:
 
-- **BART Model Weights**: Neural network weights for phoneme prediction (US and GB variants)
-- **Gold Dictionary**: High-confidence pronunciation mappings
-- **Silver Dictionary**: Additional pronunciation mappings with slightly lower confidence
+- **`model.safetensors`**: BART fallback weights for phoneme prediction
+- **`config.json`**: BART configuration (grapheme/phoneme vocabularies, layer sizes)
+- **`gold.json`**: High-confidence pronunciation mappings
+- **`silver.json`**: Additional pronunciation mappings with slightly lower confidence
 
-These resources are automatically bundled with the package and loaded at runtime.
+These are **not bundled** with the package (~18 MB total). Instead, the host supplies them through a
+`MisakiResourceLoading` injected into `EnglishG2P.init(british:unk:resources:)` — typically a
+`MisakiDirectoryResources` pointing at an **accent-specific** directory the host downloaded (e.g. from the
+Hugging Face repos `jonschneider/graphemes_to_phonemes_en_us` and `…_en_gb`). The library itself does no
+downloading, so the host controls when assets are fetched. The US and GB assets are byte-identical to
+those repos; the lexicons (`gold.json`, `silver.json`) are uploaded alongside them.
+
+> **Breaking change:** `EnglishG2P.init` now requires a `resources:` argument and is `throws`. Previously
+> the weights and dictionaries were bundled and loaded implicitly.
