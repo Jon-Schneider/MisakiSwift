@@ -23,6 +23,7 @@ final public class EnglishG2P {
   static let vowels: Set<Character> = Set("AIOQWYaiuæɑɒɔəɛɜɪʊʌᵻ")
   static let consonants: Set<Character> = Set("bdfhjklmnpstvwzðŋɡɹɾʃʒʤʧθ")
   static let subTokenJunks: Set<Character> = Set("',-._''/")
+  static let wordInternalHyphens: Set<Character> = Set("-‐‑")
   static let stresses = "ˌˈ"
   static let primaryStress = stresses[stresses.index(stresses.startIndex, offsetBy: 1)]
   static let secondaryStress = stresses[stresses.index(stresses.startIndex, offsetBy: 0)]
@@ -318,12 +319,40 @@ final public class EnglishG2P {
       nsString.substring(with: match.range)
     }
   }
+
+  private func isWordInternalHyphen(at index: Int, in tokens: [MToken]) -> Bool {
+    guard index > tokens.startIndex, index < tokens.index(before: tokens.endIndex) else {
+      return false
+    }
+
+    let token = tokens[index]
+    guard
+      token.text.count == 1,
+      let hyphen = token.text.first,
+      EnglishG2P.wordInternalHyphens.contains(hyphen),
+      tokens[tokens.index(before: index)].whitespace.isEmpty,
+      token.whitespace.isEmpty,
+      let precedingCharacter = tokens[tokens.index(before: index)].text.last,
+      let followingCharacter = tokens[tokens.index(after: index)].text.first
+    else {
+      return false
+    }
+
+    let precedingCharacterIsAlphanumeric = precedingCharacter.isLetter || precedingCharacter.isNumber
+    let followingCharacterIsAlphanumeric = followingCharacter.isLetter || followingCharacter.isNumber
+
+    // At least one side must be a letter so a numeric range such as "10-20" keeps its pause behavior.
+    return precedingCharacterIsAlphanumeric
+      && followingCharacterIsAlphanumeric
+      && (precedingCharacter.isLetter || followingCharacter.isLetter)
+  }
   
   func retokenize(_ tokens: [MToken]) -> [Any] {
     var words: [Any] = []
     var currency: String? = nil
     
     for (i, token) in tokens.enumerated() {
+      let isWordInternalHyphen = isWordInternalHyphen(at: i, in: tokens)
       let needsSplit = (token.`_`.alias == nil && token.phonemes == nil)
       var subtokens: [MToken] = []
       if needsSplit {
@@ -351,7 +380,7 @@ final public class EnglishG2P {
           token.phonemes = ""
           token.`_`.rating = 4
         } else if token.tag == .dash || (token.tag == .punctuation && token.text == "–") {
-          token.phonemes = "—"
+          token.phonemes = isWordInternalHyphen ? "" : "—"
           token.`_`.rating = 3
         } else if let tag = token.tag, EnglishG2P.punctuationTags.contains(tag), !token.text.lowercased().unicodeScalars.allSatisfy({ (97...122).contains(Int($0.value)) }) {
           if let val = EnglishG2P.punctuationTagPhonemes[token.text] {
